@@ -13,6 +13,7 @@ DROP TABLE IF EXISTS tags;
 DROP TABLE IF EXISTS genres;
 DROP TABLE IF EXISTS artists;
 DROP TABLE IF EXISTS tracks;
+DROP TABLE IF EXISTS sync_runs;
 
 -- ============================================================
 -- Core Track Table
@@ -144,6 +145,32 @@ CREATE TABLE track_tags (
         ON DELETE RESTRICT,
 
     PRIMARY KEY (track_id, tag_id)
+);
+
+-- ============================================================
+-- Sync Run Tracking
+-- ============================================================
+-- Records each attempt to populate or refresh the database from
+-- an external source such as the Epic Games Spark Tracks API.
+-- This table supports maintainability without changing the core
+-- track/artist/genre/tag schema.
+-- ============================================================
+
+CREATE TABLE sync_runs (
+    sync_id SERIAL PRIMARY KEY,
+
+    source_name VARCHAR(100) NOT NULL,
+    source_url TEXT NOT NULL,
+
+    synced_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    tracks_imported INTEGER NOT NULL
+        CHECK (tracks_imported >= 0),
+
+    status VARCHAR(20) NOT NULL
+        CHECK (status IN ('success', 'failed')),
+
+    notes TEXT
 );
 
 -- ============================================================

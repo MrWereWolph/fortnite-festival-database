@@ -70,7 +70,8 @@ GRANT SELECT ON
     track_intensities,
     track_artists,
     track_genres,
-    track_tags
+    track_tags,
+    sync_runs
 TO festival_readonly;
 
 
@@ -89,7 +90,8 @@ GRANT SELECT, INSERT, UPDATE ON
     track_intensities,
     track_artists,
     track_genres,
-    track_tags
+    track_tags,
+    sync_runs
 TO festival_app;
 
 
@@ -104,7 +106,8 @@ GRANT USAGE, SELECT ON SEQUENCE
     tracks_track_id_seq,
     artists_artist_id_seq,
     genres_genre_id_seq,
-    tags_tag_id_seq
+    tags_tag_id_seq,
+    sync_runs_sync_id_seq
 TO festival_app;
 
 
@@ -117,7 +120,8 @@ GRANT SELECT ON SEQUENCE
     tracks_track_id_seq,
     artists_artist_id_seq,
     genres_genre_id_seq,
-    tags_tag_id_seq
+    tags_tag_id_seq,
+    sync_runs_sync_id_seq
 TO festival_readonly;
 
 

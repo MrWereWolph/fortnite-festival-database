@@ -46,7 +46,8 @@ UNION ALL SELECT 'tags', COUNT(*) FROM tags
 UNION ALL SELECT 'track_intensities', COUNT(*) FROM track_intensities
 UNION ALL SELECT 'track_artists', COUNT(*) FROM track_artists
 UNION ALL SELECT 'track_genres', COUNT(*) FROM track_genres
-UNION ALL SELECT 'track_tags', COUNT(*) FROM track_tags;
+UNION ALL SELECT 'track_tags', COUNT(*) FROM track_tags
+UNION ALL SELECT 'sync_runs', COUNT(*) FROM sync_runs;
 "
 
 echo
