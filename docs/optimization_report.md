@@ -68,3 +68,81 @@ This query used the composite index:
 
 ```sql
 idx_tracks_key_mode_bpm
+```
+
+The execution plan showed a `Bitmap Index Scan` on `idx_tracks_key_mode_bpm` with the following index condition:
+
+```sql
+musical_key = 'E'
+mode = 'Minor'
+bpm BETWEEN 115 AND 140
+```
+
+This is a strong result because this query represents one of the main goals of the project: helping Fortnite Festival Jam Stage users quickly find songs that are close in BPM and share the same key and mode. The query returned 14 matching rows and completed in approximately 0.360 ms during testing.
+
+Because the query pattern matches the composite index order, PostgreSQL was able to use the index to narrow the matching tracks before performing the joins and aggregation.
+
+### Query B: Artist Search
+
+The artist search used partial text matching:
+
+```sql
+artist_name ILIKE '%weeknd%'
+```
+
+Even though a trigram index exists on `artists.artist_name`, PostgreSQL still chose a sequential scan on the `artists` table. The execution plan showed that PostgreSQL scanned 387 artist rows and removed 384 by filter.
+
+This is acceptable because 387 rows is still small enough that PostgreSQL may estimate a sequential scan as cheaper than using the trigram index. The query still executed quickly, completing in approximately 0.325 ms during testing.
+
+As the number of artists grows, the trigram index would become more useful for partial artist-name searches.
+
+### Query C: Genre Report
+
+The genre report used joins, grouping, and aggregation to calculate track counts and average BPM by genre.
+
+The query used a sequential scan on `track_genres`, which makes sense because the real API data only contained 53 track/genre relationships. Since the table is small, scanning it directly is efficient.
+
+The query also used primary key index lookups on related tables, including `tracks` and `genres`. The query completed in approximately 0.204 ms during testing and produced the genre-level reporting data needed for the project.
+
+### Query D: Tracks Faster Than Average BPM
+
+The faster-than-average query used a subquery to calculate the average BPM across all tracks, then selected tracks with BPM values above that average.
+
+This query used sequential scans on `tracks`, which is expected because calculating the average BPM requires reading all BPM values. The query also returned a large portion of the database: 340 rows out of 654 tracks. In this situation, using an index would not necessarily be cheaper because the database must process a large part of the table anyway.
+
+This query completed in approximately 1.175 ms during testing.
+
+---
+
+## Why Sequential Scans Still Appear
+
+Some queries still used sequential scans even after indexes were created.
+
+This does not mean the indexes are wrong. PostgreSQL chooses query plans based on estimated cost. If a table is small or if a query needs to read a large portion of the table, a sequential scan can be faster than using an index.
+
+Sequential scans appeared for:
+
+- artist searches over 387 artists
+- genre relationship scans over 53 rows
+- average BPM calculation over all tracks
+- queries that returned or processed a large portion of the available rows
+
+This is expected behavior. Indexes are most useful when they allow PostgreSQL to ignore a large amount of irrelevant data. If most of the table needs to be read anyway, a sequential scan can be the better plan.
+
+---
+
+## Optimization Benefits
+
+The most important optimization success was the compatibility search using the `idx_tracks_key_mode_bpm` index. This index directly supports the project's main use case: finding tracks by musical key, mode, and BPM range.
+
+The trigram indexes are still useful for future growth. They may not always be chosen with the current dataset, but they support partial text searches for song titles and artist names as the database grows.
+
+The junction-table indexes also support future scalability. As more relationship rows are added, indexes on artist, genre, and tag relationship tables will help PostgreSQL find matching tracks more efficiently.
+
+---
+
+## Optimization Conclusion
+
+The optimization results show that the database is structured well for the application's search and reporting needs. After syncing real Fortnite Festival API data, PostgreSQL used the composite key/mode/BPM index for the compatibility search, proving that the indexing strategy supports the project's core feature.
+
+Other queries still used sequential scans where appropriate. This is expected because some tables are still relatively small, and some reports require reading most or all records. Overall, the indexes provide a strong foundation for faster searching and reporting as the database continues to grow.

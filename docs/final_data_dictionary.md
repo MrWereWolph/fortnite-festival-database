@@ -24,7 +24,7 @@ Stores the main metadata for each Fortnite Festival Jam Track.
 | musical_key | VARCHAR(5) | NOT NULL, CHECK: valid key value | Musical key of the track, such as C, F#, Bb, or E. |
 | mode | VARCHAR(10) | NOT NULL, CHECK: Major or Minor | Musical mode of the track. |
 | album_title | VARCHAR(200) | Nullable | Album or release title associated with the song. |
-| isrc | TEXT | Nullable | ISRC or ISRC-like value from the Fortnite API. Stored as metadata only; not enforced as unique because duplicate and irregular values were found in the source data. |
+| isrc | TEXT | Nullable | ISRC or ISRC-like value from the Fortnite API. Stored as metadata only; not enforced as UNIQUE because duplicate and irregular values were found in the source data. |
 | cover_art_url | TEXT | Nullable | URL for the track's cover art. |
 | audio_url | TEXT | Nullable | URL or reference to audio asset metadata. |
 | lad_url | TEXT | Nullable | URL or reference to LAD asset metadata. |
@@ -35,7 +35,7 @@ Stores the main metadata for each Fortnite Festival Jam Track.
 
 ## Notes
 
-The `tracks` table is the central table of the database. It stores one record per track. Fields such as `epic_slug` and `isrc` are unique to prevent duplicate track records. The `bpm`, `musical_key`, `mode`, and `release_year` columns use check constraints to enforce valid data.
+The `tracks` table is the central table of the database. It stores one record per track. The `tracks` table is the central table of the database. It stores one record per track. The `epic_slug` field is unique and acts as the main external identifier for API-imported tracks. The `isrc` field is stored as metadata only because duplicate and irregular ISRC values were found in the source API data. The `bpm`, `musical_key`, `mode`, and `release_year` columns use check constraints to enforce valid data.
 
 ---
 

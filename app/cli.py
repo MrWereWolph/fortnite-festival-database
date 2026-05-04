@@ -5,6 +5,7 @@ from app.reports import (
     genre_report,
     artist_report,
     intensity_report,
+    api_sync_status,
 )
 from app.tracks import add_new_track
 
@@ -20,7 +21,8 @@ def print_menu():
     print("5. View artist report")
     print("6. View highest intensity tracks")
     print("7. Add a new track")
-    print("8. Exit")
+    print("8. View latest API sync status")
+    print("9. Exit")
 
 
 def main():
@@ -50,11 +52,14 @@ def main():
             add_new_track()
 
         elif choice == "8":
+            api_sync_status()
+
+        elif choice == "9":
             print("\nGoodbye.")
             break
 
         else:
-            print("\nInvalid option. Please select a number from 1 to 8.")
+            print("\nInvalid option. Please select a number from 1 to 9.")
 
 
 if __name__ == "__main__":
