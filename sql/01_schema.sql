@@ -50,7 +50,7 @@ CREATE TABLE tracks (
 
     album_title VARCHAR(200),
 
-    isrc VARCHAR(20) UNIQUE,
+    isrc TEXT, -- Unable to use VARCHAR(12) & UNIQUE due to inaccuracies and duplicate values with the official jamtrack endpoint 
 
     cover_art_url TEXT,
     audio_url TEXT,

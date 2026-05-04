@@ -21,6 +21,17 @@ DO $$
 BEGIN
     IF NOT EXISTS (
         SELECT FROM pg_catalog.pg_roles
+        WHERE rolname = 'festival_sync'
+    ) THEN
+        CREATE ROLE festival_sync WITH LOGIN PASSWORD 'sync_password';
+    END IF;
+END
+$$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT FROM pg_catalog.pg_roles
         WHERE rolname = 'festival_readonly'
     ) THEN
         CREATE ROLE festival_readonly WITH LOGIN PASSWORD 'readonly_password';
@@ -39,6 +50,37 @@ BEGIN
 END
 $$;
 
+-- ============================================================
+-- Sync role
+-- This user is used by the API sync script. It can refresh the
+-- API-managed data tables and record sync history.
+-- ============================================================
+
+GRANT CONNECT ON DATABASE fortnite_festival TO festival_sync;
+GRANT USAGE ON SCHEMA public TO festival_sync;
+
+GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE ON
+    tracks,
+    artists,
+    genres,
+    tags,
+    track_intensities,
+    track_artists,
+    track_genres,
+    track_tags
+TO festival_sync;
+
+GRANT SELECT, INSERT, UPDATE ON
+    sync_runs
+TO festival_sync;
+
+GRANT USAGE, SELECT ON SEQUENCE
+    tracks_track_id_seq,
+    artists_artist_id_seq,
+    genres_genre_id_seq,
+    tags_tag_id_seq,
+    sync_runs_sync_id_seq
+TO festival_sync;
 
 -- ============================================================
 -- Database connection permissions
