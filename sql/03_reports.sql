@@ -213,3 +213,58 @@ GROUP BY
     t.mode
 ORDER BY
     t.title;
+
+    -- ============================================================
+-- Query 7:
+-- Identify suspicious or problematic ISRC values from the API.
+-- This report flags ISRC values that are duplicated across
+-- multiple tracks or do not match the normal 12-character ISRC
+-- pattern. This helps the database maintainer understand why
+-- ISRC is stored as metadata instead of being used as a unique key.
+-- ============================================================
+
+WITH isrc_summary AS (
+    SELECT
+        isrc,
+        COUNT(*) AS track_count
+    FROM tracks
+    WHERE isrc IS NOT NULL
+      AND TRIM(isrc) <> ''
+    GROUP BY isrc
+)
+SELECT
+    t.isrc,
+    COUNT(*) OVER (PARTITION BY t.isrc) AS tracks_with_same_isrc,
+    LENGTH(t.isrc) AS isrc_length,
+    CASE
+        WHEN LENGTH(t.isrc) <> 12 THEN 'Length is not 12 characters'
+        WHEN t.isrc !~ '^[A-Z0-9]{12}$' THEN 'Contains non-standard ISRC characters'
+        WHEN COUNT(*) OVER (PARTITION BY t.isrc) > 1 THEN 'Duplicate ISRC'
+        ELSE 'Looks valid'
+    END AS issue_type,
+    t.epic_slug,
+    t.title,
+    STRING_AGG(a.artist_name, ', ') AS artists
+FROM tracks t
+JOIN track_artists ta
+    ON t.track_id = ta.track_id
+JOIN artists a
+    ON ta.artist_id = a.artist_id
+JOIN isrc_summary s
+    ON t.isrc = s.isrc
+WHERE t.isrc IS NOT NULL
+  AND TRIM(t.isrc) <> ''
+  AND (
+        s.track_count > 1
+        OR LENGTH(t.isrc) <> 12
+        OR t.isrc !~ '^[A-Z0-9]{12}$'
+      )
+GROUP BY
+    t.track_id,
+    t.isrc,
+    t.epic_slug,
+    t.title
+ORDER BY
+    issue_type,
+    t.isrc,
+    t.title;
