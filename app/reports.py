@@ -4,6 +4,29 @@ from app.db import get_connection
 from app.errors import handle_db_error
 
 
+def get_result_limit(default_limit=25, max_limit=100):
+    raw_value = input(f"Result limit, default {default_limit}, max {max_limit}: ").strip()
+
+    if raw_value == "":
+        return default_limit
+
+    try:
+        limit = int(raw_value)
+    except ValueError:
+        print(f"\nInvalid limit. Using default limit of {default_limit}.")
+        return default_limit
+
+    if limit < 1:
+        print(f"\nLimit must be at least 1. Using default limit of {default_limit}.")
+        return default_limit
+
+    if limit > max_limit:
+        print(f"\nLimit too high. Using max limit of {max_limit}.")
+        return max_limit
+
+    return limit
+
+
 def print_rows(headers, rows):
     if not rows:
         print("\nNo results found.")
@@ -15,6 +38,7 @@ def print_rows(headers, rows):
 
 def search_tracks_by_title():
     search_text = input("Enter part of the song title: ").strip()
+    limit = get_result_limit()
 
     query = """
         SELECT
@@ -37,7 +61,8 @@ def search_tracks_by_title():
             t.musical_key,
             t.mode,
             t.release_year
-        ORDER BY t.title;
+        ORDER BY t.title
+        LIMIT %s;
     """
 
     conn = None
@@ -45,7 +70,7 @@ def search_tracks_by_title():
     try:
         conn = get_connection()
         with conn.cursor() as cur:
-            cur.execute(query, (f"%{search_text}%",))
+            cur.execute(query, (f"%{search_text}%", limit))
             rows = cur.fetchall()
 
         print_rows(
@@ -63,6 +88,7 @@ def search_tracks_by_title():
 
 def search_tracks_by_artist():
     search_text = input("Enter part of the artist name: ").strip()
+    limit = get_result_limit()
 
     query = """
         SELECT
@@ -78,7 +104,8 @@ def search_tracks_by_artist():
         JOIN artists a
             ON ta.artist_id = a.artist_id
         WHERE a.artist_name ILIKE %s
-        ORDER BY a.artist_name, t.title;
+        ORDER BY a.artist_name, t.title
+        LIMIT %s;
     """
 
     conn = None
@@ -86,7 +113,7 @@ def search_tracks_by_artist():
     try:
         conn = get_connection()
         with conn.cursor() as cur:
-            cur.execute(query, (f"%{search_text}%",))
+            cur.execute(query, (f"%{search_text}%", limit))
             rows = cur.fetchall()
 
         print_rows(
@@ -110,6 +137,7 @@ def find_compatible_tracks():
         min_bpm = int(input("Enter minimum BPM: ").strip())
         max_bpm = int(input("Enter maximum BPM: ").strip())
         target_bpm = int(input("Enter target BPM for sorting: ").strip())
+        limit = get_result_limit()
     except ValueError:
         print("\nError: BPM values must be whole numbers.")
         return
@@ -139,7 +167,8 @@ def find_compatible_tracks():
             t.release_year
         ORDER BY
             ABS(t.bpm - %s),
-            t.title;
+            t.title
+        LIMIT %s;
     """
 
     conn = None
@@ -147,7 +176,7 @@ def find_compatible_tracks():
     try:
         conn = get_connection()
         with conn.cursor() as cur:
-            cur.execute(query, (musical_key, mode, min_bpm, max_bpm, target_bpm))
+            cur.execute(query, (musical_key, mode, min_bpm, max_bpm, target_bpm, limit))
             rows = cur.fetchall()
 
         print_rows(
@@ -164,6 +193,7 @@ def find_compatible_tracks():
 
 
 def genre_report():
+    limit = get_result_limit()
     query = """
         SELECT
             g.genre_name,
@@ -182,7 +212,8 @@ def genre_report():
         HAVING COUNT(t.track_id) >= 1
         ORDER BY
             track_count DESC,
-            average_bpm DESC;
+            average_bpm DESC
+        LIMIT %s;
     """
 
     conn = None
@@ -190,7 +221,7 @@ def genre_report():
     try:
         conn = get_connection()
         with conn.cursor() as cur:
-            cur.execute(query)
+            cur.execute(query, (limit,))
             rows = cur.fetchall()
 
         print_rows(
@@ -207,6 +238,7 @@ def genre_report():
 
 
 def artist_report():
+    limit = get_result_limit()
     query = """
         SELECT
             a.artist_name,
@@ -225,7 +257,8 @@ def artist_report():
         HAVING COUNT(t.track_id) >= 1
         ORDER BY
             track_count DESC,
-            a.artist_name;
+            a.artist_name
+        LIMIT %s;
     """
 
     conn = None
@@ -233,7 +266,7 @@ def artist_report():
     try:
         conn = get_connection()
         with conn.cursor() as cur:
-            cur.execute(query)
+            cur.execute(query, (limit,))
             rows = cur.fetchall()
 
         print_rows(
@@ -250,6 +283,7 @@ def artist_report():
 
 
 def intensity_report():
+    limit = get_result_limit()
     query = """
         SELECT
             t.title,
@@ -286,7 +320,8 @@ def intensity_report():
             ti.drums
         ORDER BY
             total_standard_intensity DESC,
-            t.bpm DESC;
+            t.bpm DESC
+        LIMIT %s;
     """
 
     conn = None
@@ -294,7 +329,7 @@ def intensity_report():
     try:
         conn = get_connection()
         with conn.cursor() as cur:
-            cur.execute(query)
+            cur.execute(query, (limit,))
             rows = cur.fetchall()
 
         print_rows(
@@ -308,3 +343,38 @@ def intensity_report():
     finally:
         if conn:
             conn.close()
+
+    
+def api_sync_status():
+        query = """
+            SELECT
+                sync_id,
+                source_name,
+                tracks_imported,
+                status,
+                synced_at,
+                notes
+            FROM sync_runs
+            ORDER BY synced_at DESC
+            LIMIT 5;
+        """
+
+        conn = None
+
+        try:
+            conn = get_connection()
+            with conn.cursor() as cur:
+                cur.execute(query)
+                rows = cur.fetchall()
+
+            print_rows(
+                ["Sync ID", "Source", "Tracks Imported", "Status", "Synced At", "Notes"],
+                rows
+            )
+
+        except Exception as err:
+            handle_db_error(conn, err)
+
+        finally:
+            if conn:
+                conn.close()
