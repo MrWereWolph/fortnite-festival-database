@@ -24,7 +24,7 @@ Stores the main metadata for each Fortnite Festival Jam Track.
 | musical_key | VARCHAR(5) | NOT NULL, CHECK: valid key value | Musical key of the track, such as C, F#, Bb, or E. |
 | mode | VARCHAR(10) | NOT NULL, CHECK: Major or Minor | Musical mode of the track. |
 | album_title | VARCHAR(200) | Nullable | Album or release title associated with the song. |
-| isrc | VARCHAR(20) | UNIQUE, nullable | International Standard Recording Code, if available. |
+| isrc | TEXT | Nullable | ISRC or ISRC-like value from the Fortnite API. Stored as metadata only; not enforced as unique because duplicate and irregular values were found in the source data. |
 | cover_art_url | TEXT | Nullable | URL for the track's cover art. |
 | audio_url | TEXT | Nullable | URL or reference to audio asset metadata. |
 | lad_url | TEXT | Nullable | URL or reference to LAD asset metadata. |
@@ -173,6 +173,30 @@ A track can have multiple tags, and a tag can apply to multiple tracks. The comp
 
 ---
 
+# Table: sync_runs
+
+## Purpose
+
+Records each attempt to populate or refresh the database from an external data source such as the Fortnite Festival Spark Tracks API.
+
+| Column Name | Data Type | Key / Constraint | Description |
+|---|---|---|---|
+| sync_id | SERIAL / INTEGER | Primary Key, NOT NULL | Unique database-generated identifier for each sync run. |
+| source_name | VARCHAR(100) | NOT NULL | Name of the external source used for the sync, such as Epic Games Spark Tracks API. |
+| source_url | TEXT | NOT NULL | URL of the external source used for the sync. |
+| synced_at | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP | Date and time when the sync attempt was recorded. |
+| tracks_imported | INTEGER | NOT NULL, CHECK: greater than or equal to 0 | Number of tracks imported during the sync attempt. |
+| status | VARCHAR(20) | NOT NULL, CHECK: success or failed | Indicates whether the sync attempt succeeded or failed. |
+| notes | TEXT | Nullable | Optional notes about the sync attempt, such as skipped records or error messages. |
+
+## Notes
+
+The `sync_runs` table supports database maintainability by recording when the database was refreshed from the Fortnite Festival API and how many tracks were imported.
+
+This table does not change the core track, artist, genre, or tag relationships. It exists only to track import history and sync status.
+
+---
+
 # Indexes
 
 ## Basic Indexes
@@ -212,6 +236,7 @@ A track can have multiple tags, and a tag can apply to multiple tracks. The comp
 | tracks to artists | M:N | A track can have multiple artists, and an artist can have multiple tracks. Resolved by `track_artists`. |
 | tracks to genres | M:N | A track can have multiple genres, and a genre can apply to multiple tracks. Resolved by `track_genres`. |
 | tracks to tags | M:N | A track can have multiple tags, and a tag can apply to multiple tracks. Resolved by `track_tags`. |
+| sync_runs to tracks | No direct relationship | Sync runs record import history but do not directly reference individual tracks. |
 
 ---
 
@@ -221,9 +246,9 @@ A track can have multiple tags, and a tag can apply to multiple tracks. The comp
 |---|---|---|
 | Primary Keys | All main and junction tables | Ensures each record or relationship is uniquely identifiable. |
 | Foreign Keys | Junction tables, track_intensities | Enforces valid relationships between tables. |
-| UNIQUE | tracks, artists, genres, tags | Prevents duplicate slugs, ISRCs, artist names, genre names, and tag names. |
+| UNIQUE | tracks, artists, genres, tags | Prevents duplicate slugs, artist names, genre names, and tag names. ISRC is not unique because duplicate values were found in the API source data. |
 | NOT NULL | Required columns | Ensures required data is provided. |
-| CHECK | tracks, track_intensities | Enforces valid BPM, key, mode, release year, and intensity values. |
+| CHECK | tracks, track_intensities, sync_runs | Enforces valid BPM, key, mode, release year, intensity values, sync status values, and non-negative imported track counts. |
 | ON DELETE CASCADE | track_intensities and junction tables referencing tracks | Removes dependent records when a track is deleted. |
 | ON DELETE RESTRICT | junction tables referencing artists, genres, and tags | Prevents deleting lookup values while they are still connected to tracks. |
 
@@ -246,3 +271,7 @@ Non-key attributes depend on the key, the whole key, and nothing but the key. Ar
 ## Design Note
 
 The `track_intensities` table is intentionally kept as one row per track with separate columns for vocals, lead, bass, drums, and pro instrument values. This is slightly denormalized compared to a fully generic instrument-rating table, but it improves readability and makes common reports easier to write.
+
+The `isrc` column was originally considered as a possible unique field, but testing against the real Fortnite Festival API showed duplicate and irregular ISRC values. Because of this, the database stores ISRC as flexible text metadata. The `epic_slug` column is used as the unique external track identifier instead.
+
+The `sync_runs` table was added to record API refresh history. It stores when a sync occurred, which source was used, how many tracks were imported, whether the sync succeeded or failed, and any notes about the import.

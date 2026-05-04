@@ -1,102 +1,102 @@
                                                                               QUERY PLAN                                                                              
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=72.15..72.20 rows=20 width=70) (actual time=0.387..0.389 rows=14 loops=1)
+ Sort  (cost=72.15..72.20 rows=20 width=70) (actual time=0.414..0.417 rows=14 loops=1)
    Sort Key: (abs((t.bpm - 124))), t.title
    Sort Method: quicksort  Memory: 26kB
-   ->  GroupAggregate  (cost=71.22..71.72 rows=20 width=70) (actual time=0.304..0.318 rows=14 loops=1)
+   ->  GroupAggregate  (cost=71.22..71.72 rows=20 width=70) (actual time=0.348..0.363 rows=14 loops=1)
          Group Key: t.track_id
-         ->  Sort  (cost=71.22..71.27 rows=20 width=50) (actual time=0.294..0.296 rows=14 loops=1)
+         ->  Sort  (cost=71.22..71.27 rows=20 width=50) (actual time=0.336..0.338 rows=14 loops=1)
                Sort Key: t.track_id
                Sort Method: quicksort  Memory: 26kB
-               ->  Nested Loop  (cost=55.75..70.78 rows=20 width=50) (actual time=0.134..0.282 rows=14 loops=1)
-                     ->  Hash Join  (cost=55.60..66.87 rows=20 width=38) (actual time=0.125..0.249 rows=14 loops=1)
+               ->  Nested Loop  (cost=55.75..70.78 rows=20 width=50) (actual time=0.165..0.322 rows=14 loops=1)
+                     ->  Hash Join  (cost=55.60..66.87 rows=20 width=38) (actual time=0.154..0.281 rows=14 loops=1)
                            Hash Cond: (ta.track_id = t.track_id)
-                           ->  Seq Scan on track_artists ta  (cost=0.00..9.54 rows=654 width=8) (actual time=0.008..0.067 rows=654 loops=1)
-                           ->  Hash  (cost=55.35..55.35 rows=20 width=34) (actual time=0.091..0.091 rows=14 loops=1)
+                           ->  Seq Scan on track_artists ta  (cost=0.00..9.54 rows=654 width=8) (actual time=0.007..0.068 rows=654 loops=1)
+                           ->  Hash  (cost=55.35..55.35 rows=20 width=34) (actual time=0.119..0.119 rows=14 loops=1)
                                  Buckets: 1024  Batches: 1  Memory Usage: 9kB
-                                 ->  Bitmap Heap Scan on tracks t  (cost=4.58..55.35 rows=20 width=34) (actual time=0.046..0.079 rows=14 loops=1)
+                                 ->  Bitmap Heap Scan on tracks t  (cost=4.58..55.35 rows=20 width=34) (actual time=0.070..0.105 rows=14 loops=1)
                                        Recheck Cond: (((musical_key)::text = 'E'::text) AND ((mode)::text = 'Minor'::text) AND (bpm >= 115) AND (bpm <= 140))
                                        Heap Blocks: exact=11
-                                       ->  Bitmap Index Scan on idx_tracks_key_mode_bpm  (cost=0.00..4.58 rows=20 width=0) (actual time=0.038..0.038 rows=14 loops=1)
+                                       ->  Bitmap Index Scan on idx_tracks_key_mode_bpm  (cost=0.00..4.58 rows=20 width=0) (actual time=0.047..0.047 rows=14 loops=1)
                                              Index Cond: (((musical_key)::text = 'E'::text) AND ((mode)::text = 'Minor'::text) AND (bpm >= 115) AND (bpm <= 140))
                      ->  Index Scan using artists_pkey on artists a  (cost=0.15..0.20 rows=1 width=20) (actual time=0.002..0.002 rows=1 loops=14)
                            Index Cond: (artist_id = ta.artist_id)
- Planning Time: 2.806 ms
- Execution Time: 0.519 ms
+ Planning Time: 4.586 ms
+ Execution Time: 0.554 ms
 (23 rows)
 
                                                             QUERY PLAN                                                             
 -----------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=25.51..25.53 rows=7 width=46) (actual time=0.547..0.549 rows=9 loops=1)
+ Sort  (cost=25.51..25.53 rows=7 width=46) (actual time=0.501..0.503 rows=9 loops=1)
    Sort Key: t.title
    Sort Method: quicksort  Memory: 25kB
-   ->  Nested Loop  (cost=8.16..25.41 rows=7 width=46) (actual time=0.402..0.534 rows=9 loops=1)
-         ->  Hash Join  (cost=7.89..19.17 rows=7 width=20) (actual time=0.389..0.502 rows=9 loops=1)
+   ->  Nested Loop  (cost=8.16..25.41 rows=7 width=46) (actual time=0.353..0.488 rows=9 loops=1)
+         ->  Hash Join  (cost=7.89..19.17 rows=7 width=20) (actual time=0.341..0.456 rows=9 loops=1)
                Hash Cond: (ta.artist_id = a.artist_id)
-               ->  Seq Scan on track_artists ta  (cost=0.00..9.54 rows=654 width=8) (actual time=0.007..0.055 rows=654 loops=1)
-               ->  Hash  (cost=7.84..7.84 rows=4 width=20) (actual time=0.370..0.370 rows=3 loops=1)
+               ->  Seq Scan on track_artists ta  (cost=0.00..9.54 rows=654 width=8) (actual time=0.007..0.056 rows=654 loops=1)
+               ->  Hash  (cost=7.84..7.84 rows=4 width=20) (actual time=0.322..0.322 rows=3 loops=1)
                      Buckets: 1024  Batches: 1  Memory Usage: 9kB
-                     ->  Seq Scan on artists a  (cost=0.00..7.84 rows=4 width=20) (actual time=0.011..0.367 rows=3 loops=1)
+                     ->  Seq Scan on artists a  (cost=0.00..7.84 rows=4 width=20) (actual time=0.011..0.320 rows=3 loops=1)
                            Filter: ((artist_name)::text ~~* '%weeknd%'::text)
                            Rows Removed by Filter: 384
          ->  Index Scan using tracks_pkey on tracks t  (cost=0.28..0.89 rows=1 width=34) (actual time=0.003..0.003 rows=1 loops=9)
                Index Cond: (track_id = ta.track_id)
- Planning Time: 1.003 ms
- Execution Time: 0.575 ms
+ Planning Time: 1.023 ms
+ Execution Time: 0.529 ms
 (16 rows)
 
                                                                      QUERY PLAN                                                                     
 ----------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=56.55..56.60 rows=18 width=270) (actual time=0.276..0.277 rows=6 loops=1)
+ Sort  (cost=56.55..56.60 rows=18 width=270) (actual time=0.267..0.268 rows=6 loops=1)
    Sort Key: (count(t.track_id)) DESC, (round(avg(t.bpm), 2)) DESC
    Sort Method: quicksort  Memory: 25kB
-   ->  HashAggregate  (cost=55.34..56.18 rows=18 width=270) (actual time=0.250..0.256 rows=6 loops=1)
+   ->  HashAggregate  (cost=55.34..56.18 rows=18 width=270) (actual time=0.239..0.245 rows=6 loops=1)
          Group Key: g.genre_id
          Filter: (count(t.track_id) >= 1)
          Batches: 1  Memory Usage: 24kB
-         ->  Nested Loop  (cost=3.48..54.67 rows=53 width=230) (actual time=0.049..0.225 rows=53 loops=1)
-               ->  Merge Join  (cost=3.32..45.98 rows=53 width=12) (actual time=0.036..0.172 rows=53 loops=1)
+         ->  Nested Loop  (cost=3.48..54.67 rows=53 width=230) (actual time=0.051..0.216 rows=53 loops=1)
+               ->  Merge Join  (cost=3.32..45.98 rows=53 width=12) (actual time=0.035..0.165 rows=53 loops=1)
                      Merge Cond: (t.track_id = tg.track_id)
-                     ->  Index Scan using tracks_pkey on tracks t  (cost=0.28..123.09 rows=654 width=8) (actual time=0.007..0.092 rows=222 loops=1)
-                     ->  Sort  (cost=3.05..3.18 rows=53 width=8) (actual time=0.026..0.031 rows=53 loops=1)
+                     ->  Index Scan using tracks_pkey on tracks t  (cost=0.28..123.09 rows=654 width=8) (actual time=0.006..0.089 rows=222 loops=1)
+                     ->  Sort  (cost=3.05..3.18 rows=53 width=8) (actual time=0.025..0.029 rows=53 loops=1)
                            Sort Key: tg.track_id
                            Sort Method: quicksort  Memory: 26kB
-                           ->  Seq Scan on track_genres tg  (cost=0.00..1.53 rows=53 width=8) (actual time=0.006..0.012 rows=53 loops=1)
+                           ->  Seq Scan on track_genres tg  (cost=0.00..1.53 rows=53 width=8) (actual time=0.005..0.011 rows=53 loops=1)
                ->  Memoize  (cost=0.16..1.08 rows=1 width=222) (actual time=0.001..0.001 rows=1 loops=53)
                      Cache Key: tg.genre_id
                      Cache Mode: logical
                      Hits: 47  Misses: 6  Evictions: 0  Overflows: 0  Memory Usage: 1kB
                      ->  Index Scan using genres_pkey on genres g  (cost=0.15..1.07 rows=1 width=222) (actual time=0.003..0.003 rows=1 loops=6)
                            Index Cond: (genre_id = tg.genre_id)
- Planning Time: 0.709 ms
- Execution Time: 0.318 ms
+ Planning Time: 1.419 ms
+ Execution Time: 0.340 ms
 (23 rows)
 
                                                               QUERY PLAN                                                               
 ---------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=244.56..245.11 rows=218 width=66) (actual time=1.806..1.827 rows=340 loops=1)
+ Sort  (cost=244.56..245.11 rows=218 width=66) (actual time=1.706..1.727 rows=340 loops=1)
    Sort Key: t.bpm DESC
    Sort Method: quicksort  Memory: 51kB
    InitPlan 1 (returns $0)
-     ->  Aggregate  (cost=102.18..102.19 rows=1 width=32) (actual time=0.249..0.249 rows=1 loops=1)
-           ->  Seq Scan on tracks  (cost=0.00..100.54 rows=654 width=4) (actual time=0.002..0.141 rows=654 loops=1)
-   ->  HashAggregate  (cost=131.18..133.91 rows=218 width=66) (actual time=1.592..1.681 rows=340 loops=1)
+     ->  Aggregate  (cost=102.18..102.19 rows=1 width=32) (actual time=0.231..0.232 rows=1 loops=1)
+           ->  Seq Scan on tracks  (cost=0.00..100.54 rows=654 width=4) (actual time=0.002..0.147 rows=654 loops=1)
+   ->  HashAggregate  (cost=131.18..133.91 rows=218 width=66) (actual time=1.496..1.584 rows=340 loops=1)
          Group Key: t.track_id
          Batches: 1  Memory Usage: 557kB
-         ->  Hash Join  (cost=118.24..130.09 rows=218 width=50) (actual time=0.738..1.146 rows=340 loops=1)
+         ->  Hash Join  (cost=118.24..130.09 rows=218 width=50) (actual time=0.753..1.042 rows=340 loops=1)
                Hash Cond: (ta.artist_id = a.artist_id)
-               ->  Hash Join  (cost=106.53..117.80 rows=218 width=38) (actual time=0.609..0.823 rows=340 loops=1)
+               ->  Hash Join  (cost=106.53..117.80 rows=218 width=38) (actual time=0.620..0.829 rows=340 loops=1)
                      Hash Cond: (ta.track_id = t.track_id)
-                     ->  Seq Scan on track_artists ta  (cost=0.00..9.54 rows=654 width=8) (actual time=0.006..0.065 rows=654 loops=1)
-                     ->  Hash  (cost=103.81..103.81 rows=218 width=34) (actual time=0.595..0.595 rows=340 loops=1)
+                     ->  Seq Scan on track_artists ta  (cost=0.00..9.54 rows=654 width=8) (actual time=0.007..0.066 rows=654 loops=1)
+                     ->  Hash  (cost=103.81..103.81 rows=218 width=34) (actual time=0.601..0.602 rows=340 loops=1)
                            Buckets: 1024  Batches: 1  Memory Usage: 32kB
-                           ->  Seq Scan on tracks t  (cost=0.00..103.81 rows=218 width=34) (actual time=0.254..0.490 rows=340 loops=1)
+                           ->  Seq Scan on tracks t  (cost=0.00..103.81 rows=218 width=34) (actual time=0.238..0.491 rows=340 loops=1)
                                  Filter: ((bpm)::numeric > $0)
                                  Rows Removed by Filter: 314
-               ->  Hash  (cost=6.87..6.87 rows=387 width=20) (actual time=0.122..0.122 rows=387 loops=1)
+               ->  Hash  (cost=6.87..6.87 rows=387 width=20) (actual time=0.125..0.125 rows=387 loops=1)
                      Buckets: 1024  Batches: 1  Memory Usage: 29kB
-                     ->  Seq Scan on artists a  (cost=0.00..6.87 rows=387 width=20) (actual time=0.007..0.056 rows=387 loops=1)
- Planning Time: 0.442 ms
- Execution Time: 1.951 ms
+                     ->  Seq Scan on artists a  (cost=0.00..6.87 rows=387 width=20) (actual time=0.008..0.058 rows=387 loops=1)
+ Planning Time: 0.482 ms
+ Execution Time: 1.852 ms
 (24 rows)
 

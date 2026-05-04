@@ -4,13 +4,15 @@
 
 This report documents the optimization strategy used for the Fortnite Festival Database Project. The database is designed to support common Fortnite Festival Jam Stage search and reporting needs, including searching by title, artist, BPM, musical key, mode, genre, tag, and instrument intensity.
 
-The optimization process focused on identifying columns that are frequently used in `WHERE` clauses, `JOIN` conditions, `ORDER BY` clauses, and reporting queries. Indexes were created to support those access patterns, and `EXPLAIN ANALYZE` was used to compare query execution plans.
+The database was first tested with sample data, then later populated with real Fortnite Festival API data using the API sync script. After the API sync, the database contained 654 tracks, 387 artists, 654 track/artist relationships, and 53 track/genre relationships. This made the optimization testing more realistic than testing with only the original 10 sample records.
+
+The optimization process focused on identifying columns that are frequently used in `WHERE` clauses, `JOIN` conditions, `ORDER BY` clauses, and reporting queries. Indexes were created to support those access patterns, and `EXPLAIN ANALYZE` was used to inspect the query plans and execution times.
 
 ---
 
 ## Queries Tested
 
-The project includes several advanced business-logic queries in `sql/03_reports.sql` and `sql/04_indexes.sql`.
+The project includes several advanced business-logic queries in `sql/03_reports.sql` and `sql/04_explain_analysis.sql`.
 
 The main queries tested for optimization were:
 
@@ -50,55 +52,19 @@ Advanced indexes were added in `sql/04_indexes.sql`:
 | `idx_track_genres_genre_track` | `track_genres` | Supports joins from genre to track. |
 | `idx_track_tags_tag_track` | `track_tags` | Supports joins from tag to track. |
 
-PostgreSQL's `pg_trgm` extension was also enabled so the database can use trigram indexes for partial text searches such as `ILIKE '%weeknd%'`.
+PostgreSQL's `pg_trgm` extension was enabled so the database can use trigram indexes for partial text searches such as `ILIKE '%weeknd%'`.
 
 ---
 
-## EXPLAIN ANALYZE Results
+## EXPLAIN ANALYZE Results After API Sync
 
-When running `EXPLAIN ANALYZE`, PostgreSQL produced valid execution plans for each query. The plans showed a mix of sequential scans, hash joins, nested loops, bitmap scans, sorts, and aggregate operations.
+After syncing real Fortnite Festival API data, the database contained hundreds of rows instead of only the original sample records. This made the query plans more meaningful.
 
-For the artist search query, PostgreSQL used a sequential scan on the `artists` table even after the trigram index was created. The plan showed that only 10 artist rows existed, and PostgreSQL removed 9 rows by filter while finding the matching artist. This is expected because the table is extremely small. With only 10 rows, scanning the entire table is cheaper than using an index.
+### Query A: Compatible Track Search
 
-For the genre report query, PostgreSQL also used sequential scans and hash joins. This makes sense because the report aggregates across most of the available records. When a query needs to read most or all rows in a table, indexes are often less useful because the database has to process nearly the entire table anyway.
+The compatible track search filters by musical key, mode, and BPM range.
 
-For the compatible track search query, the database filtered tracks by musical key, mode, and BPM range. Although a composite index exists on `(musical_key, mode, bpm)`, PostgreSQL still chose a sequential scan in the small sample dataset. Again, this is expected because the `tracks` table only has 10 rows. In a larger real-world dataset, this index would become more valuable because it would allow PostgreSQL to narrow down matching tracks without scanning the full table.
+This query used the composite index:
 
----
-
-## Why Sequential Scans Still Appear
-
-The sample database contains only 10 tracks, 10 artists, 10 genres, 10 tags, and a small number of junction-table rows. Because of this, PostgreSQL often chooses sequential scans instead of indexes.
-
-This does not mean the indexes are wrong. It means the database optimizer has determined that reading a few rows directly is faster than loading and traversing an index. Indexes have overhead, and for very small tables, that overhead can cost more than a simple table scan.
-
-This is an important part of query optimization: indexes are not automatically used just because they exist. PostgreSQL chooses the plan it estimates will be cheapest.
-
----
-
-## Expected Benefits With Larger Data
-
-The indexes would become more useful as the database grows.
-
-In a real Fortnite Festival database with hundreds or thousands of tracks, artists, tags, and relationship rows, the indexes would improve performance for:
-
-- title searches
-- artist searches
-- BPM range filters
-- key and mode filters
-- genre and tag joins
-- compatibility searches
-- high-BPM reports
-- repeated application queries
-
-The trigram indexes would be especially useful for partial text searches. For example, a user searching for part of an artist name or song title would benefit from the GIN trigram indexes as the number of records grows.
-
-The composite index on `(musical_key, mode, bpm)` is also important because it matches one of the application's main search patterns: finding songs that share a key, mode, and nearby BPM range for Jam Stage mixing.
-
----
-
-## Optimization Conclusion
-
-The optimization results show that the database is correctly structured for future growth, even though the current sample dataset is too small to show dramatic performance gains. PostgreSQL often chose sequential scans because the tables contain very few rows. This is expected behavior and does not indicate a problem with the indexing strategy.
-
-The indexes created in this project are still useful because they support the application's intended real-world workload. As the dataset grows, these indexes would help reduce query cost, improve search speed, and make the application more responsive for users searching tracks by title, artist, BPM, key, mode, genre, and tag.
+```sql
+idx_tracks_key_mode_bpm
